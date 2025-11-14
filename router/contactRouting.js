@@ -1,65 +1,47 @@
-const express = require("express")
-const Contact = require("../model/contactmodel")
+const express = require("express");
+const Contact = require("../model/contactmodel");
 const contactRouting = express.Router();
-let nodemailer = require('nodemailer')
+let nodemailer = require("nodemailer");
 
-
-contactRouting.post('/contact', async (req, res) => {
-
-
-
+contactRouting.post("/contact", async (req, res) => {
   try {
-
     const data = new Contact(req.body);
-    const resultset = await data.save();
-    res.send(resultset);
+    const savedData = await data.save();
 
-    console.log(req.body);
-    
-    const { name, email, message } = req.body
+    // Send response only once
+    res.status(200).json({ message: "Contact Saved Successfully", savedData });
 
-    let trasport = nodemailer.createTransport({
-      service: 'gmail',
+    const { name, email, message } = req.body;
+
+    // Gmail SMTP (Correct for Render)
+    let transport = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // MUST BE TRUE for Gmail
       auth: {
-        user: 'yugendrakumar21@gmail.com',
+       user: 'yugendrakumar21@gmail.com',
         pass: 'wdlo gsan ftyv qion',
+      },
+    });
 
-      }
-    })
     let mailOptions = {
-      // from: `${email}`,
-            from: `yugendrakumar21@gmail.com`,
-
-      to: 'aviligondayugendra18@gmail.com',
-      subject: `Contact Us Form Submission`,
-      text: `name : ${name},email:${email} , message:${message}`
+      from: process.env.GMAIL_USER,
+      to: "aviligondayugendra18@gmail.com",
+      subject: "New Contact Form Submission",
+      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
     };
 
-    trasport.sendMail(mailOptions, (err, info) => {
-      if (err) throw err
-      res.send(' Mail sent successfully');
-
+    transport.sendMail(mailOptions, (err, info) => {
+      if (err) console.log("Email Error:", err);
+      else console.log("Email Sent:", info.response);
     });
-  }
-  catch (err) {
-    res
-      .status(500)
-      .send({ error: "Failed to Send Mail ", details: err.message })
-  }
-})
 
-
-contactRouting.get("/contact", async (req, res) => {
-  try {
-    const contactus = await Contact.find();
-    res.send(contactus);
   } catch (err) {
     res.status(500).send({
-      error: "Failed to Fetch Contact Us Data ",
+      error: "Failed to Save or Send Mail",
       details: err.message,
     });
   }
 });
-
 
 module.exports = contactRouting;
